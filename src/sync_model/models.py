@@ -25,7 +25,7 @@ class SyncTask(models.Model):
     order_by = models.JSONField(default=default_order_by)
     last_sync = models.JSONField(default=dict)
     dependencies = models.ManyToManyField(
-            "self", related_name="following_tasks"
+            "self",
     )
     filter_by = models.JSONField(default=dict)
 
@@ -41,7 +41,7 @@ class RawStockAction(models.Model):
         build the StockAction table from RawStockAction.
         We only sync the
             * action_type in buy and sell,
-            * order by update_datetime and sender
+            * order by update_datetime and -sender
     """
     ACTION_TYPE_CHOICES = (
             ("buy", "buy"),

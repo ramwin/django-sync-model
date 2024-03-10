@@ -14,7 +14,9 @@ from typing import NewType, List
 
 from django.db.models import Q, Model
 
-from .models import SyncTask
+from .models import (
+        SyncTask, RawStockAction, StockAction
+        )
 
 
 OrderBy = NewType("OrderBy", List[str])
@@ -25,7 +27,7 @@ def get_queryset(sync_task: SyncTask):
     source_model = sync_task.source.model_class()
     queryset = source_model.objects.filter(
             **sync_task.filter_by
-    ).order_by(sync_task.order_by)
+    ).order_by(*sync_task.order_by)
     return queryset.filter(get_Q(sync_task.order_by, sync_task.last_sync))
 
 
@@ -82,3 +84,15 @@ def get_Q(order_by: OrderBy, last_sync: dict):  # pylint: disable=invalid-name
         same_dict[greater_key.strip("-")] = last_sync[greater_key]
     result |= Q(**same_dict)
     return result
+
+
+def sync_raw_stock_action(queryset,
+                          target_model: StockAction,
+                          sync_task: SyncTask):  # pylint: disable=unused-argument
+    """
+    only sync the id field
+    """
+    for raw_stockaction in queryset:
+        StockAction.objects.get_or_create(
+                id=raw_stockaction.id,
+        )
