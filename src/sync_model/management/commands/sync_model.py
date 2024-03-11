@@ -3,6 +3,11 @@
 # Xiang Wang <ramwin@qq.com>
 
 
+"""
+handle sync model task
+"""
+
+
 import importlib
 import logging
 
@@ -19,6 +24,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):
+    """run sync model task"""
 
     def handle(self, *args, **kwargs):  # pylint: disable=unused-argument
         LOGGER.info("start run sync model")
@@ -38,17 +44,28 @@ class Command(BaseCommand):
                         continue
                     if set(nomination_task.dependencies.all()) - finished_tasks:
                         continue
-                next_tasks.add()
+                    next_tasks.add(nomination_task)
 
     @staticmethod
     def run_sync_task(sync_task: SyncTask) -> SyncResult:
-        queryset = get_queryset(sync_task)[0:sync_task.batch_size]
-        module, function = sync_task.sync_method.rsplit(".")
+        """
+        sync a single SyncTask
+        """
+        result = {}
+        queryset = get_queryset(sync_task)
+        module, function = sync_task.sync_method.rsplit(".", 1)
         sync_function = getattr(
             importlib.import_module(module),
             function
         )
-        sync_function(queryset, sync_task.target.model_class(), sync_task)
-        last_value = get_value(queryset[sync_task.batch_size], sync_task.order_by)
+        if queryset.count() > sync_task.batch_size:
+            last_sync_model = queryset[sync_task.batch_size]
+            result["finished"] = False
+        else:
+            last_sync_model = queryset.last()
+            result["finished"] = True
+        sync_function(queryset[0:sync_task.batch_size], sync_task.target.model_class(), sync_task)
+        last_value = get_value(last_sync_model, sync_task.order_by, datetime2str=True)
         sync_task.last_sync = last_value
         sync_task.save()
+        return result

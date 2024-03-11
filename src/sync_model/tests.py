@@ -60,7 +60,7 @@ class Test(TestCase):
                 2,
         )
         self.assertEqual(
-                StockAction.objects.first().id,
+                StockAction.objects.order_by("create_datetime").first().id,
                 first_stock.id,
         )
         call_command("sync_model")

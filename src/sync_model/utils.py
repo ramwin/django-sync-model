@@ -8,6 +8,7 @@ useful utils to sync model instance
 """
 
 
+import datetime
 import warnings
 
 from typing import NewType, List
@@ -15,7 +16,7 @@ from typing import NewType, List
 from django.db.models import Q, Model
 
 from .models import (
-        SyncTask, RawStockAction, StockAction
+        SyncTask, StockAction
         )
 
 
@@ -28,10 +29,11 @@ def get_queryset(sync_task: SyncTask):
     queryset = source_model.objects.filter(
             **sync_task.filter_by
     ).order_by(*sync_task.order_by)
-    return queryset.filter(get_Q(sync_task.order_by, sync_task.last_sync))
+    filter_q = get_Q(sync_task.order_by, sync_task.last_sync)
+    return queryset.filter(filter_q)
 
 
-def get_value(instance: Model, order_by: OrderBy) -> dict:
+def get_value(instance: Model, order_by: OrderBy, datetime2str: bool) -> dict:
     """
     get last sync value from instance according order_by
     e.g.
@@ -44,10 +46,12 @@ def get_value(instance: Model, order_by: OrderBy) -> dict:
             result[key] = getattr(instance, key[1:])
         else:
             result[key] = getattr(instance, key)
+        if datetime2str and isinstance(result[key], datetime.datetime):
+            result[key] = result[key].isoformat()
     return result
 
 
-def get_Q(order_by: OrderBy, last_sync: dict):  # pylint: disable=invalid-name
+def get_Q(order_by: OrderBy, last_sync: dict) -> Q:  # pylint: disable=invalid-name
     """
     get django Q filter from order_by and last_sync data
     """
@@ -56,13 +60,13 @@ def get_Q(order_by: OrderBy, last_sync: dict):  # pylint: disable=invalid-name
     if not order_by:
         warnings.warn("empty order by will cause sync always sync from the first model ")
         return Q()
-    greater_key = order_by.copy()
-    first_key = greater_key.pop(0)
+    greater_keys = order_by.copy()
+    first_key = greater_keys.pop(0)
     if first_key.startswith("-"):
         direction = "lt"
     else:
         direction = "gt"
-    result = Q({
+    result = Q(**{
         f"{first_key.strip('-')}__{direction}": last_sync[first_key]
     })
     same_dict = {
@@ -77,10 +81,10 @@ def get_Q(order_by: OrderBy, last_sync: dict):  # pylint: disable=invalid-name
         greater_dict = {
             f"{greater_key.strip('-')}__{direction}": last_sync[greater_key]
         }
-        result |= Q({
+        result |= Q(
             **same_dict,
             **greater_dict,
-        })
+        )
         same_dict[greater_key.strip("-")] = last_sync[greater_key]
     result |= Q(**same_dict)
     return result
@@ -93,6 +97,6 @@ def sync_raw_stock_action(queryset,
     only sync the id field
     """
     for raw_stockaction in queryset:
-        StockAction.objects.get_or_create(
+        target_model.objects.get_or_create(
                 id=raw_stockaction.id,
         )

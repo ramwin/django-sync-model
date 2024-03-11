@@ -48,16 +48,18 @@ class RawStockAction(models.Model):
             ("sell", "sell"),
             ("cancel", "cancel"),
     )
-    sender = models.CharField()
+    sender = models.CharField(max_length=32)
     action_type = models.CharField(
-            choices=ACTION_TYPE_CHOICES
+            choices=ACTION_TYPE_CHOICES,
+            max_length=10,
     )
     update_datetime = models.DateTimeField()
     canceled = models.BooleanField()
-    stock_number = models.CharField()
+    stock_number = models.CharField(max_length=32)
 
 
 class StockAction(models.Model):
     """
     inner StockAction with foreignkey
     """
+    create_datetime = models.DateTimeField(auto_now_add=True)
