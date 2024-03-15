@@ -16,18 +16,18 @@ class Test(TestCase):
 
     def test(self):
         now = timezone.now()
-        RawStockAction.objects.create(
-                sender="bob",
-                action_type="buy",
-                update_datetime=now,
-                canceled=False,
-                stock_number="LUCK",
-        )
-        RawStockAction.objects.create(
-                sender="bob",
+        second_stock = RawStockAction.objects.create(
+                sender="charlie",
                 action_type="buy",
                 update_datetime=now,
                 canceled=True,
+                stock_number="LUCK",
+        )
+        fourth_stock = RawStockAction.objects.create(
+                sender="alice",
+                action_type="buy",
+                update_datetime=now,
+                canceled=False,
                 stock_number="LUCK",
         )
         first_stock = RawStockAction.objects.create(
@@ -37,7 +37,7 @@ class Test(TestCase):
                 canceled=False,
                 stock_number="LUCK",
         )
-        RawStockAction.objects.create(
+        third_stock = RawStockAction.objects.create(
                 sender="bob",
                 action_type="buy",
                 update_datetime=now,
@@ -63,8 +63,17 @@ class Test(TestCase):
                 StockAction.objects.order_by("create_datetime").first().id,
                 first_stock.id,
         )
+        self.assertEqual(
+                StockAction.objects.order_by("create_datetime").last().id,
+                third_stock.id,
+        )
         call_command("sync_model")
         self.assertEqual(
                 StockAction.objects.count(),
                 3,
+        )
+        call_command("sync_model")
+        self.assertEqual(
+                RawStockAction.objects.count() - 1,
+                StockAction.objects.count(),
         )

@@ -72,8 +72,8 @@ def get_Q(order_by: OrderBy, last_sync: dict) -> Q:  # pylint: disable=invalid-n
     same_dict = {
         first_key.strip("-"): last_sync[first_key]
     }
-    while order_by:
-        greater_key = order_by.pop(0)
+    while greater_keys:
+        greater_key = greater_keys.pop(0)
         if greater_key.startswith("-"):
             direction = "lt"
         else:
