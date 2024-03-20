@@ -18,6 +18,7 @@ class SyncTask(models.Model):
     """
     A synctask means you need to handle all the data from source model to target model
     """
+    name = models.TextField(blank=True)
     source = models.ForeignKey(ContentType, related_name="+", on_delete=models.DO_NOTHING)
     source_db = models.TextField(default="default")
     target = models.ForeignKey(ContentType, related_name="+", on_delete=models.DO_NOTHING)
@@ -27,9 +28,12 @@ class SyncTask(models.Model):
     order_by = models.JSONField(default=default_order_by)
     last_sync = models.JSONField(default=dict)
     dependencies = models.ManyToManyField(
-            "self",
+            "self", symmetrical=False,
     )
     filter_by = models.JSONField(default=dict)
+
+    def __str__(self):
+        return self.name
 
 
 class RawStockAction(models.Model):
