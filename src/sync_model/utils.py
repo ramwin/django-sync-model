@@ -26,7 +26,7 @@ OrderBy = NewType("OrderBy", List[str])
 def get_queryset(sync_task: SyncTask):
     """get filtered and ordered queryset from sync_task"""
     source_model = sync_task.source.model_class()
-    queryset = source_model.objects.filter(
+    queryset = source_model.objects.using(sync_task.source_db).filter(
             **sync_task.filter_by
     ).order_by(*sync_task.order_by)
     filter_q = get_Q(sync_task.order_by, sync_task.last_sync)

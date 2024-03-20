@@ -19,7 +19,9 @@ class SyncTask(models.Model):
     A synctask means you need to handle all the data from source model to target model
     """
     source = models.ForeignKey(ContentType, related_name="+", on_delete=models.DO_NOTHING)
+    source_db = models.TextField(default="default")
     target = models.ForeignKey(ContentType, related_name="+", on_delete=models.DO_NOTHING)
+    target_db = models.TextField(default="default")
     sync_method = models.TextField()
     batch_size = models.IntegerField(default=100)
     order_by = models.JSONField(default=default_order_by)
