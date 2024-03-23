@@ -99,4 +99,9 @@ def sync_raw_stock_action(queryset,
     for raw_stockaction in queryset:
         target_model.objects.get_or_create(
                 id=raw_stockaction.id,
+                defaults={
+                    "update_datetime": raw_stockaction.update_datetime,
+                    "stock_number": raw_stockaction.stock_number,
+                    "sender": raw_stockaction.sender,
+                }
         )

@@ -69,3 +69,6 @@ class StockAction(models.Model):
     inner StockAction with foreignkey
     """
     create_datetime = models.DateTimeField(auto_now_add=True)
+    update_datetime = models.DateTimeField(null=True)
+    sender = models.CharField(max_length=32)
+    stock_number = models.CharField(max_length=32)

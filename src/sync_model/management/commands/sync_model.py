@@ -13,6 +13,7 @@ import logging
 
 from django.core.management import BaseCommand
 
+from sync_model.exceptions import StepTooSmallException
 from sync_model.models import SyncTask
 from sync_model.types import SyncResult
 from sync_model.utils import (
@@ -59,13 +60,15 @@ class Command(BaseCommand):
             function
         )
         if queryset.count() > sync_task.batch_size:
-            last_sync_model = queryset[sync_task.batch_size]
+            last_sync_model = queryset[sync_task.batch_size - 1]
             result["finished"] = False
         else:
             last_sync_model = queryset.last()
             result["finished"] = True
         sync_function(queryset[0:sync_task.batch_size], sync_task.target.model_class(), sync_task)
         last_value = get_value(last_sync_model, sync_task.order_by, datetime2str=True)
+        if result["finished"] is False and sync_task.last_sync == last_value:
+            raise StepTooSmallException
         sync_task.last_sync = last_value
         sync_task.save()
         return result
