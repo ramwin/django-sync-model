@@ -10,6 +10,7 @@ handle sync model task
 
 import importlib
 import logging
+import time
 
 from django.core.management import BaseCommand
 
@@ -27,8 +28,15 @@ LOGGER = logging.getLogger(__name__)
 class Command(BaseCommand):
     """run sync model task"""
 
+    def add_arguments(self, parser):
+        parser.add_argument("--name", type=str)
+
     def handle(self, *args, **kwargs):  # pylint: disable=unused-argument
-        LOGGER.info("start run sync model")
+        if kwargs.get("name"):
+            self.run_sync_task(
+                    SyncTask.objects.get(name=kwargs["name"])
+            )
+            return
         synced_tasks = set()
         finished_tasks = set()
         next_tasks = set(SyncTask.objects.filter(dependencies=None))
@@ -52,6 +60,8 @@ class Command(BaseCommand):
         """
         sync a single SyncTask
         """
+        LOGGER.info("start sync: %s", sync_task)
+        start = time.time()
         result = {}
         queryset = get_queryset(sync_task)
         module, function = sync_task.sync_method.rsplit(".", 1)
@@ -71,4 +81,7 @@ class Command(BaseCommand):
             raise StepTooSmallException
         sync_task.last_sync = last_value
         sync_task.save()
+        end = time.time()
+        LOGGER.info("%s finished, duration: %f, result: %s, last_sync: %s",
+                    sync_task, end - start, result, sync_task.last_sync)
         return result
