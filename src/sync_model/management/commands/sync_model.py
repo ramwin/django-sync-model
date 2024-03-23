@@ -81,11 +81,18 @@ class Command(BaseCommand):
             importlib.import_module(module),
             function
         )
-        LOGGER.info("sync_function realized")
+        LOGGER.debug("sync_function realized")
         sync_result: SyncResult = sync_function(
                 queryset[0:sync_task.batch_size],
                 sync_task.target.model_class(),
                 sync_task)
+        if sync_result["last_sync_model"] is None:
+            if sync_result["count"] == 0:
+                LOGGER.info("Origin model has deleted the last model")
+                LOGGER.info("%s finished %s, last_sync: %s",
+                            sync_task, sync_result, sync_task.last_sync)
+                return sync_result
+            raise ValueError("sync count is not None, but the last_sync_model is empty")
         last_value = get_value(sync_result["last_sync_model"],
                                sync_task.order_by,
                                datetime2str=True)

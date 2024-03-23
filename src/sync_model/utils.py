@@ -94,7 +94,7 @@ def get_Q(order_by: OrderBy, last_sync: dict) -> Q:  # pylint: disable=invalid-n
         )
         same_dict[greater_key.strip("-")] = last_sync[greater_key]
     result |= Q(**same_dict)
-    LOGGER.info("query: %s", result)
+    LOGGER.debug("query: %s", result)
     return result
 
 
