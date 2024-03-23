@@ -30,6 +30,8 @@ SyncTask.objects.create(
             "canceled": False,
         }
 )
+
+here your sync_method should return a sync result
 ```
 
 2. run sync task
@@ -45,3 +47,7 @@ python3 manage.py sync_model
 * [x] support custom sync size of each table
 * [ ] support exclude filters
 * [ ] support timeout parameter
+
+# Release Notes
+* 0.5.0
+break change: `sync_function` should return `SyncResult`

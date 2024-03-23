@@ -10,7 +10,6 @@ handle sync model task
 
 import importlib
 import logging
-import time
 
 from django.core.management import BaseCommand
 
@@ -59,16 +58,10 @@ class Command(BaseCommand):
     def run_sync_task(sync_task: SyncTask) -> SyncResult:
         """
         sync a single SyncTask
-        """
-        LOGGER.info("start sync: %s", sync_task)
-        start = time.time()
-        result = {}
-        queryset = get_queryset(sync_task)
-        module, function = sync_task.sync_method.rsplit(".", 1)
-        sync_function = getattr(
-            importlib.import_module(module),
-            function
-        )
+
+        previous version: the queryset.count() will be very slow, so I require the sync_method to return a syncresult
+
+        ```python
         if queryset.count() > sync_task.batch_size:
             last_sync_model = queryset[sync_task.batch_size - 1]
             result["finished"] = False
@@ -78,10 +71,28 @@ class Command(BaseCommand):
         sync_function(queryset[0:sync_task.batch_size], sync_task.target.model_class(), sync_task)
         last_value = get_value(last_sync_model, sync_task.order_by, datetime2str=True)
         if result["finished"] is False and sync_task.last_sync == last_value:
+        ```
+
+        """
+        LOGGER.info("start sync: %s", sync_task)
+        queryset = get_queryset(sync_task)
+        module, function = sync_task.sync_method.rsplit(".", 1)
+        sync_function = getattr(
+            importlib.import_module(module),
+            function
+        )
+        LOGGER.info("sync_function realized")
+        sync_result: SyncResult = sync_function(
+                queryset[0:sync_task.batch_size],
+                sync_task.target.model_class(),
+                sync_task)
+        last_value = get_value(sync_result["last_sync_model"],
+                               sync_task.order_by,
+                               datetime2str=True)
+        if sync_result["finished"] is False and sync_task.last_sync == last_value:
             raise StepTooSmallException
         sync_task.last_sync = last_value
         sync_task.save()
-        end = time.time()
-        LOGGER.info("%s finished, duration: %f, result: %s, last_sync: %s",
-                    sync_task, end - start, result, sync_task.last_sync)
-        return result
+        LOGGER.info("%s finished %s, last_sync: %s",
+                    sync_task, sync_result, sync_task.last_sync)
+        return sync_result

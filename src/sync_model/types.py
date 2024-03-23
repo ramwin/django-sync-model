@@ -3,8 +3,15 @@
 # Xiang Wang <ramwin@qq.com>
 
 
-from typing import TypedDict
+import datetime
+from typing import TypedDict, Optional
+
+from django.db.models import Model
 
 
 class SyncResult(TypedDict):
     finished: bool
+    count: int
+    start: datetime.datetime
+    end: datetime.datetime
+    last_sync_model: Optional[Model]

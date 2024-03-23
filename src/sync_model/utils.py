@@ -9,24 +9,31 @@ useful utils to sync model instance
 
 
 import datetime
+import logging
 import warnings
 
-from typing import NewType, List
+from typing import NewType, List, Optional
 
 from django.db.models import Q, Model
+from django.utils import timezone
 
 from .models import (
         SyncTask, StockAction
         )
+from .types import SyncResult
 
 
 OrderBy = NewType("OrderBy", List[str])
+LOGGER = logging.getLogger(__name__)
 
 
 def get_queryset(sync_task: SyncTask):
     """get filtered and ordered queryset from sync_task"""
-    source_model = sync_task.source.model_class()
-    queryset = source_model.objects.using(sync_task.source_db).filter(
+    source_model: Optional[type[Model]] = sync_task.source.model_class()
+    if source_model is None:
+        raise ValueError(f"A sync task {sync_task} use an deleted model")
+    all_queryset = source_model.objects.using(sync_task.source_db)  # type: ignore[attr-defined]
+    queryset = all_queryset.filter(
             **sync_task.filter_by
     ).order_by(*sync_task.order_by)
     filter_q = get_Q(sync_task.order_by, sync_task.last_sync)
@@ -87,15 +94,25 @@ def get_Q(order_by: OrderBy, last_sync: dict) -> Q:  # pylint: disable=invalid-n
         )
         same_dict[greater_key.strip("-")] = last_sync[greater_key]
     result |= Q(**same_dict)
+    LOGGER.info("query: %s", result)
     return result
 
 
-def sync_raw_stock_action(queryset,
-                          target_model: StockAction,
-                          sync_task: SyncTask):  # pylint: disable=unused-argument
+def sync_raw_stock_action(
+        queryset,
+        target_model: StockAction,
+        sync_task: SyncTask) -> SyncResult:
+    # pylint: disable=unused-argument
     """
     only sync the id field
     """
+    sync_result: SyncResult = {
+            "finished": False,
+            "count": 0,
+            "start": timezone.now(),
+            "last_sync_model": None,
+            "end": timezone.now(),
+    }
     for raw_stockaction in queryset:
         target_model.objects.get_or_create(
                 id=raw_stockaction.id,
@@ -105,3 +122,9 @@ def sync_raw_stock_action(queryset,
                     "sender": raw_stockaction.sender,
                 }
         )
+        sync_result["last_sync_model"] = raw_stockaction
+        sync_result["count"] += 1
+    if sync_result["count"] < sync_task.batch_size:
+        sync_result["finished"] = True
+    sync_result["end"] = timezone.now()
+    return sync_result
