@@ -168,3 +168,6 @@ packages = ["src/sync_model"]
 exclude = [
     "/example",
 ]
+
+[tool.setuptools.package-data]
+duration2 = ["src/sync_model/py.typed"]
