@@ -45,8 +45,10 @@ python3 manage.py sync_model
 * [x] support non-cycle dependency
 * [x] support filter
 * [x] support custom sync size of each table
+* [ ] support foreign key sort
 * [ ] support exclude filters
 * [ ] support timeout parameter
+* [ ] support None value
 
 # Release Notes
 * 0.5.0

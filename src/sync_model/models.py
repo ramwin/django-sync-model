@@ -36,6 +36,10 @@ class SyncTask(models.Model):
         return self.name
 
 
+class Broker(models.Model):
+    name = models.TextField(default="")
+
+
 class RawStockAction(models.Model):
     """
     e.g.
@@ -54,6 +58,7 @@ class RawStockAction(models.Model):
             ("sell", "sell"),
             ("cancel", "cancel"),
     )
+    broker = models.ForeignKey(Broker, null=True, on_delete=models.CASCADE)
     sender = models.CharField(max_length=32)
     action_type = models.CharField(
             choices=ACTION_TYPE_CHOICES,

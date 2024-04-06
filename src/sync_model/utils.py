@@ -49,12 +49,11 @@ def get_value(instance: Model, order_by: OrderBy, datetime2str: bool) -> dict:
     """
     result = {}
     for key in order_by:
-        if key.startswith("-"):
-            result[key] = getattr(instance, key[1:])
-        else:
-            result[key] = getattr(instance, key)
+        result[key] = getattr(instance, key.lstrip("-"))
         if datetime2str and isinstance(result[key], datetime.datetime):
             result[key] = result[key].isoformat()
+        elif isinstance(result[key], Model):
+            result[key] = result[key].pk
     return result
 
 

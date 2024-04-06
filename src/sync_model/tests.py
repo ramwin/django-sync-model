@@ -8,7 +8,7 @@ from django.utils import timezone
 from sync_model.exceptions import StepTooSmallException
 from sync_model.models import (
         RawStockAction, StockAction,
-        SyncTask,
+        SyncTask, Broker,
 )
 from sync_model.utils import get_value
 
@@ -20,12 +20,14 @@ class Test(TestCase):
         now = timezone.make_aware(
                 datetime.datetime(2024, 1, 1, 2, 3, 4)
         )
+        broker = Broker.objects.create()
         second_stock = RawStockAction.objects.create(
                 sender="charlie",
                 action_type="buy",
                 update_datetime=now,
                 canceled=True,
                 stock_number="LUCK",
+                broker=broker,
         )
         fourth_stock = RawStockAction.objects.create(
                 sender="alice",
@@ -33,6 +35,7 @@ class Test(TestCase):
                 update_datetime=now,
                 canceled=False,
                 stock_number="LUCK",
+                broker=broker,
         )
         first_stock = RawStockAction.objects.create(
                 sender="bob",
@@ -40,6 +43,7 @@ class Test(TestCase):
                 update_datetime=now-datetime.timedelta(days=1),
                 canceled=False,
                 stock_number="LUCK_PRE",
+                broker=broker,
         )
         third_stock = RawStockAction.objects.create(
                 sender="bob",
@@ -47,13 +51,14 @@ class Test(TestCase):
                 update_datetime=now,
                 canceled=False,
                 stock_number="LUCK",
+                broker=broker,
         )
         sync_task = SyncTask.objects.create(
                 source=ContentType.objects.get_for_model(RawStockAction),
                 target=ContentType.objects.get_for_model(StockAction),
                 sync_method="sync_model.utils.sync_raw_stock_action",
                 batch_size=1,
-                order_by=["update_datetime", "-sender"],
+                order_by=["update_datetime", "-sender", "broker"],
                 filter_by={
                     "canceled": False,
                 }
